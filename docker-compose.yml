@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+
+  ### Nginx
+  nginx-php:
+    image: k44sh/nginx-php
+    container_name: nginx-php
+    hostname: nginx-php
+    restart: always
+    healthcheck:
+      test: "curl -f http://127.0.0.1:8080/ping"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      net-web:
+        ipv6_address: "fd42:4242::10"
+    ports:
+      - "80:8080/tcp"
+      - "1935:1935"
+    volumes:
+      - web-config:/etc/nginx/:ro
+      - web-data:/var/www/:rw
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+    env_file:
+      - .env
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+
+### Networks
+networks:
+  net-web:
+    name: net-web
+    enable_ipv6: true
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.name: "docker30"
+    ipam:
+      config:
+        - subnet: "10.42.42.0/24"
+        - subnet: "fd42:4242::/120"
+
+### Configurations
+volumes:
+  web-config:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "./config"
+
+  web-data:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "./data"
